@@ -462,6 +462,42 @@ const STREAMS = [
   measureQ,     // 15
 ];
 
+/** Metadata 16 luồng: tên hiển thị, mô tả, icon, tag chủ đạo — cho UI chọn chủ đề. */
+export const STREAM_META = [
+  { name: "Tổng hợp",    desc: "Kiến thức + ứng xử viết tay",  icon: "✦", tags: null },
+  { name: "Lịch sử",     desc: "Sự kiện Việt Nam & thế giới",  icon: "⌛", tags: ["Lịch sử"] },
+  { name: "Địa lý",      desc: "Thủ đô, địa danh, sông núi",   icon: "🗺", tags: ["Địa lý"] },
+  { name: "Khoa học",    desc: "Hóa học, vật lý, cơ thể",      icon: "⚗", tags: ["Khoa học"] },
+  { name: "Tự nhiên",    desc: "Môi trường, động thực vật",    icon: "🌿", tags: ["Tự nhiên"] },
+  { name: "Quân sự",     desc: "Quốc phòng, binh chủng",       icon: "🛡", tags: ["Quân sự"] },
+  { name: "Kinh tế",     desc: "Tiền tệ, thị trường, đầu tư",  icon: "📈", tags: ["Kinh tế"] },
+  { name: "Văn hóa",     desc: "Phong tục, di sản, ẩm thực",   icon: "🏮", tags: ["Văn hóa"] },
+  { name: "Thể thao",    desc: "Môn thể thao, vận động viên",  icon: "⚽", tags: ["Thể thao"] },
+  { name: "Thông tin",   desc: "Công nghệ, an ninh mạng",      icon: "💻", tags: ["Thông tin", "Công nghệ", "Đời sống"] },
+  { name: "So sánh",     desc: "a < b, a > b",                 icon: "⚖", tags: ["So sánh"] },
+  { name: "Nhân chia",   desc: "Phép nhân và chia",            icon: "✖", tags: ["Nhân chia"] },
+  { name: "Số học",      desc: "Nguyên tố, chính phương...",   icon: "#️⃣", tags: ["Số học"] },
+  { name: "Lịch vạn niên", desc: "Ngày nào là thứ mấy?",       icon: "📅", tags: ["Lịch vạn niên"] },
+  { name: "Cộng trừ",    desc: "Phép cộng và trừ",             icon: "➕", tags: ["Cộng trừ"] },
+  { name: "Đo lường",    desc: "Đổi đơn vị km, kg, phút",      icon: "📏", tags: ["Đo lường"] },
+];
+
+/** Lấy `count` câu ngẫu nhiên chỉ từ luồng `g` (Fisher-Yates ảo trên 62.5k id của luồng). */
+export function sampleFromStream(g, count, seed = 20260930) {
+  const rand = mulberry32(seed);
+  const swaps = new Map();
+  const out = [];
+  for (let i = 0; i < Math.min(count, PER_GROUP); i++) {
+    const j = i + Math.floor(rand() * (PER_GROUP - i));
+    const vi = swaps.has(i) ? swaps.get(i) : i;
+    const vj = swaps.has(j) ? swaps.get(j) : j;
+    swaps.set(i, vj);
+    swaps.set(j, vi);
+    out.push({ id: vj * GROUPS + g, ...STREAMS[g](vj) });
+  }
+  return out;
+}
+
 /** id ∈ [0, TOTAL) → { tag, q, a }. Tất định, 16 luồng đan xen đều tuyệt đối. */
 export function questionAt(id) {
   if (!Number.isInteger(id) || id < 0 || id >= TOTAL) {

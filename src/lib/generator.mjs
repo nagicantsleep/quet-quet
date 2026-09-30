@@ -1,7 +1,6 @@
 /**
- * API câu hỏi cho app: lấy mẫu ngẫu nhiên từ kho 1.000.000 câu (million.mjs).
- * Kho gồm 179 câu viết tay + các họ sinh (thủ đô, hóa học, số học, phép tính).
+ * API câu hỏi cho app: kho 1.000.000 câu (million.mjs) + chọn chủ đề theo luồng.
  */
-import { sampleQuestions, questionAt, TOTAL, TAG_COLORS } from "./million.mjs";
+import { sampleQuestions, sampleFromStream, questionAt, TOTAL, TAG_COLORS, STREAM_META } from "./million.mjs";
 
-export { sampleQuestions, questionAt, TOTAL, TAG_COLORS };
+export { sampleQuestions, sampleFromStream, questionAt, TOTAL, TAG_COLORS, STREAM_META };

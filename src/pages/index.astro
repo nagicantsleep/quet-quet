@@ -3,7 +3,7 @@
  * QUẸT QUẸT! — thẻ câu hỏi kiến thức & ứng xử, lấy cảm hứng từ ampcode.com:
  * nền tối, chữ serif editorial, nhãn mono, accent amber. Ấn thẻ để sang câu tiếp.
  */
-import { TOTAL } from "../lib/generator.mjs";
+import { TOTAL, STREAM_META, TAG_COLORS } from "../lib/generator.mjs";
 
 const DECK_SIZE = Math.min(200, TOTAL);
 ---
@@ -26,12 +26,30 @@ const DECK_SIZE = Math.min(200, TOTAL);
     <span class="wordmark">quẹt<em>quẹt</em></span>
   </div>
   <div class="meta">
-    <span id="counter" class="count-flip">–</span>
-    <span class="sep" aria-hidden="true">/</span>
-    <span id="deckInfo">{DECK_SIZE} câu mỗi lượt</span>
+    <button class="tool" id="addBtn" type="button" title="Thêm câu hỏi của bạn">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      thêm câu
+    </button>
+    <button class="tool" id="topicBtn" type="button" aria-expanded="false" aria-controls="topicPanel">
+      <span id="topicLabel">Tất cả</span>
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
   </div>
 </header>
 <div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
+
+<div class="topic-panel" id="topicPanel" hidden>
+  <button class="topic-item" data-stream="-1" type="button">
+    <span class="ti-icon" aria-hidden="true">✳</span>
+    <span class="ti-text"><strong>Tất cả</strong><small>16 chủ đề trộn đều</small></span>
+  </button>
+  {STREAM_META.map((m, g) => (
+    <button class="topic-item" data-stream={String(g)} type="button">
+      <span class="ti-icon" aria-hidden="true">{m.icon}</span>
+      <span class="ti-text"><strong>{m.name}</strong><small>{m.desc}</small></span>
+    </button>
+  ))}
+</div>
 
 <main class="stage">
   <div class="aura" aria-hidden="true"><i></i><i></i></div>
@@ -45,11 +63,36 @@ const DECK_SIZE = Math.min(200, TOTAL);
   </button>
 
   <div class="end" id="endScreen" hidden>
-    <p class="end-title">Hết bộ {DECK_SIZE} câu.</p>
+    <p class="end-title">Hết bộ câu.</p>
     <p class="end-stats" id="endStats"></p>
     <button class="again" id="againBtn" type="button">Xáo bộ mới</button>
   </div>
 </main>
+
+<div class="modal-backdrop" id="addModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="addTitle">
+    <h2 id="addTitle">Thêm câu hỏi của bạn</h2>
+    <label class="field">
+      <span>Chủ đề</span>
+      <select id="addTag">
+        {Object.keys(TAG_COLORS).map(t => <option value={t}>{t}</option>)}
+      </select>
+    </label>
+    <label class="field">
+      <span>Câu hỏi</span>
+      <textarea id="addQ" rows="3" maxlength="300" placeholder="Ví dụ: Sông nào dài nhất Việt Nam?"></textarea>
+    </label>
+    <label class="field">
+      <span>Đáp án / gợi ý (hiện sau khi quẹt)</span>
+      <textarea id="addA" rows="2" maxlength="300" placeholder="Sông Đồng Nai — dài ~586 km, chảy qua TP.HCM."></textarea>
+    </label>
+    <p class="modal-note" id="addMsg" hidden></p>
+    <div class="modal-actions">
+      <button class="ghost" id="addCancel" type="button">Đóng</button>
+      <button class="again" id="addSave" type="button">Lưu vào máy</button>
+    </div>
+  </div>
+</div>
 
 <footer class="foot">
   <span>Kho {TOTAL.toLocaleString("vi-VN")} câu hỏi · kiến thức &amp; ứng xử</span>
@@ -138,6 +181,81 @@ body::before{ /* film grain */
   display:flex;align-items:center;gap:8px;
 }
 .meta .sep{opacity:.5}
+
+/* nút công cụ trên header */
+.tool{
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:var(--font-mono);font-size:11.5px;color:var(--fg);
+  background:none;border:1px solid var(--border);border-radius:999px;
+  padding:6px 12px;cursor:pointer;
+  transition:border-color .2s var(--ease),color .2s var(--ease);
+}
+.tool:hover{border-color:var(--amber);color:var(--amber)}
+.tool[aria-expanded="true"]{border-color:var(--amber);color:var(--amber)}
+
+/* panel chọn chủ đề */
+.topic-panel{
+  position:absolute;top:64px;right:22px;z-index:20;
+  width:min(320px,88vw);max-height:70dvh;overflow:auto;
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:0 16px 48px rgba(0,0,0,.5);
+  padding:6px;
+  animation:cardIn .22s var(--ease) backwards;
+}
+.topic-item{
+  display:flex;align-items:center;gap:12px;width:100%;
+  background:none;border:none;border-radius:8px;
+  padding:9px 10px;cursor:pointer;text-align:left;
+  color:inherit;font:inherit;
+  transition:background .15s var(--ease);
+}
+.topic-item:hover{background:rgba(135,139,134,.12)}
+.topic-item.active{background:rgba(252,187,0,.12)}
+.topic-item.active .ti-icon{outline:2px solid var(--amber)}
+.ti-icon{
+  width:34px;height:34px;flex:none;border-radius:8px;
+  display:grid;place-items:center;font-size:16px;
+  background:rgba(135,139,134,.14);
+}
+.ti-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ti-text strong{font-family:var(--font-serif);font-size:14px;font-weight:600;color:var(--fg-strong)}
+.ti-text small{font-family:var(--font-mono);font-size:10.5px;color:var(--muted)}
+
+/* modal thêm câu hỏi */
+.modal-backdrop{
+  position:fixed;inset:0;z-index:30;
+  background:rgba(0,0,0,.6);backdrop-filter:blur(4px);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;
+  animation:fadeIn .2s var(--ease);
+}
+.modal-backdrop[hidden]{display:none}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{
+  width:min(460px,94vw);max-height:86dvh;overflow:auto;
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:24px;
+  animation:cardIn .25s var(--ease) backwards;
+}
+.modal h2{font-family:var(--font-serif);font-size:19px;font-weight:600;color:var(--fg-strong);margin-bottom:16px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.field span{font-family:var(--font-mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+.field textarea,.field select{
+  font-family:var(--font-serif);font-size:14.5px;color:var(--fg-strong);
+  background:var(--bg);border:1px solid var(--border);border-radius:8px;
+  padding:10px 12px;resize:vertical;
+}
+.field textarea:focus,.field select:focus{outline:none;border-color:var(--amber)}
+.modal-note{font-family:var(--font-mono);font-size:12px;color:var(--amber);margin-bottom:10px;line-height:1.5}
+.modal-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.modal .ghost{
+  font-family:var(--font-mono);font-size:12.5px;color:var(--fg);
+  background:none;border:1px solid var(--border);border-radius:8px;
+  padding:10px 16px;cursor:pointer;
+  transition:border-color .2s var(--ease);
+}
+.modal .ghost:hover{border-color:var(--amber);color:var(--amber)}
+.modal .again{margin-top:0;font-size:12.5px;padding:10px 16px}
 
 /* ---------- stage & card ---------- */
 .stage{
@@ -278,9 +396,10 @@ kbd{
 </style>
 
 <script>
-import { sampleQuestions, TOTAL, TAG_COLORS } from "../lib/generator.mjs";
+import { sampleQuestions, sampleFromStream, TOTAL, TAG_COLORS, STREAM_META } from "../lib/generator.mjs";
 
 const DECK_SIZE = Math.min(200, TOTAL);
+const LS_KEY = "quetquet:userQuestions";
 
 const cardEl = document.getElementById("card") as HTMLButtonElement;
 const tagEl = document.getElementById("tag") as HTMLElement;
@@ -362,7 +481,20 @@ function showEnd() {
 }
 
 function newDeck() {
-  cards = sampleQuestions(DECK_SIZE, Math.floor(Math.random() * 2 ** 31));
+  const seed = Math.floor(Math.random() * 2 ** 31);
+  const userQs = loadUserQuestions();
+  const wantGen = Math.max(0, DECK_SIZE - userQs.length);
+  let gen;
+  if (currentStream >= 0) {
+    gen = sampleFromStream(currentStream, wantGen, seed);
+  } else {
+    gen = sampleQuestions(wantGen, seed);
+  }
+  // câu của user luôn xen vào đầu bộ (nếu hợp chủ đề đang chọn)
+  const filteredUser = currentStream >= 0
+    ? userQs.filter(q => (STREAM_META[currentStream]?.tags ?? null)?.includes(q.tag) ?? true)
+    : userQs;
+  cards = [...filteredUser, ...gen];
   index = 0; animating = false;
   endScreen.hidden = true;
   cardEl.hidden = false;
@@ -373,6 +505,83 @@ function newDeck() {
   cardEl.classList.add("reveal");
   paint();
 }
+
+/* ================= chọn chủ đề ================= */
+let currentStream = -1; // -1 = tất cả
+
+const topicBtn = document.getElementById("topicBtn") as HTMLButtonElement;
+const topicPanel = document.getElementById("topicPanel") as HTMLElement;
+const topicLabel = document.getElementById("topicLabel") as HTMLElement;
+
+topicBtn.addEventListener("click", () => {
+  const open = topicPanel.hidden;
+  topicPanel.hidden = !open;
+  topicBtn.setAttribute("aria-expanded", String(open));
+});
+document.addEventListener("click", e => {
+  if (!topicPanel.hidden && !topicPanel.contains(e.target as Node) && e.target !== topicBtn && !topicBtn.contains(e.target as Node)) {
+    topicPanel.hidden = true;
+    topicBtn.setAttribute("aria-expanded", "false");
+  }
+});
+topicPanel.addEventListener("click", e => {
+  const btn = (e.target as HTMLElement).closest<HTMLElement>(".topic-item");
+  if (!btn) return;
+  currentStream = Number(btn.dataset.stream);
+  topicPanel.querySelectorAll(".topic-item").forEach(b => b.classList.toggle("active", b === btn));
+  topicLabel.textContent = STREAM_META[currentStream]?.name ?? "Tất cả";
+  topicPanel.hidden = true;
+  topicBtn.setAttribute("aria-expanded", "false");
+  newDeck();
+});
+
+/* ================= thêm câu hỏi của user ================= */
+function loadUserQuestions(): Q[] {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }
+  catch { return []; }
+}
+function saveUserQuestions(qs: Q[]) {
+  localStorage.setItem(LS_KEY, JSON.stringify(qs));
+}
+
+const addModal = document.getElementById("addModal") as HTMLElement;
+const addBtn = document.getElementById("addBtn") as HTMLButtonElement;
+const addCancel = document.getElementById("addCancel") as HTMLButtonElement;
+const addSave = document.getElementById("addSave") as HTMLButtonElement;
+const addPropose = document.getElementById("addPropose") as HTMLButtonElement;
+const addQ = document.getElementById("addQ") as HTMLTextAreaElement;
+const addA = document.getElementById("addA") as HTMLTextAreaElement;
+const addTag = document.getElementById("addTag") as HTMLSelectElement;
+const addMsg = document.getElementById("addMsg") as HTMLElement;
+
+function openModal() {
+  addModal.hidden = false;
+  addMsg.hidden = true;
+  addQ.focus();
+}
+function closeModal() { addModal.hidden = true; }
+
+addBtn.addEventListener("click", openModal);
+addCancel.addEventListener("click", closeModal);
+addModal.addEventListener("click", e => { if (e.target === addModal) closeModal(); });
+addEventListener("keydown", e => {
+  if (e.key === "Escape" && !addModal.hidden) closeModal();
+});
+
+addSave.addEventListener("click", () => {
+  const q = addQ.value.trim(), a = addA.value.trim(), tag = addTag.value;
+  if (!q || !a) {
+    addMsg.textContent = "Cần điền cả câu hỏi và đáp án.";
+    addMsg.hidden = false;
+    return;
+  }
+  const qs = loadUserQuestions();
+  qs.push({ id: Date.now(), tag, q: q.endsWith("?") ? q : q + "?", a });
+  saveUserQuestions(qs);
+  addMsg.textContent = `Đã lưu vào máy! Câu của bạn sẽ xuất hiện trong bộ sau khi bấm "Xáo bộ mới".`;
+  addMsg.hidden = false;
+  addQ.value = ""; addA.value = "";
+});
 
 cardEl.addEventListener("click", next);
 addEventListener("keydown", e => {
