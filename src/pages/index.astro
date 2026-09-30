@@ -329,9 +329,14 @@ function next() {
   // xoay thoát ngẫu nhiên nhẹ
   cardEl.style.setProperty("--exit-rot", `${(Math.random() - .5) * 5}deg`);
   cardEl.classList.add("leaving");
-  cardEl.addEventListener("animationend", e => {
-    if (e.animationName === "cardOut") advance();
-  }, { once: true });
+  // KHÔNG dùng {once:true}: animationend của element con (tagIn/qIn) bubble lên
+  // và tiêu listener sớm → cardOut xong không ai gọi advance. Lọc tên + tự gỡ.
+  const onEnd = e => {
+    if (e.animationName !== "cardOut") return;
+    cardEl.removeEventListener("animationend", onEnd);
+    advance();
+  };
+  cardEl.addEventListener("animationend", onEnd);
 }
 
 function advance() {
