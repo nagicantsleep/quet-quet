@@ -26,13 +26,15 @@ const DECK_SIZE = Math.min(200, TOTAL);
     <span class="wordmark">quẹt<em>quẹt</em></span>
   </div>
   <div class="meta">
-    <span id="counter">–</span>
+    <span id="counter" class="count-flip">–</span>
     <span class="sep" aria-hidden="true">/</span>
     <span id="deckInfo">{DECK_SIZE} câu mỗi lượt</span>
   </div>
 </header>
+<div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
 
 <main class="stage">
+  <div class="aura" aria-hidden="true"><i></i><i></i></div>
   <button class="card" id="card" type="button" aria-live="polite">
     <span class="tag" id="tag">…</span>
     <span class="q" id="question">Đang xáo bộ câu hỏi…</span>
@@ -83,6 +85,34 @@ body{
 body::before{ /* film grain */
   content:"";position:fixed;inset:0;z-index:9;pointer-events:none;opacity:.05;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.6'/%3E%3C/svg%3E");
+}
+.aura{ /* hào quang hổ phách trôi chậm sau thẻ */
+  position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;
+}
+.aura i{
+  position:absolute;width:52vmax;height:52vmax;border-radius:50%;
+  background:radial-gradient(circle,rgba(252,187,0,.05),transparent 62%);
+  top:-18vmax;right:-14vmax;
+  animation:auraDrift 26s ease-in-out infinite alternate;
+}
+.aura i:nth-child(2){
+  width:38vmax;height:38vmax;top:auto;right:auto;bottom:-12vmax;left:-10vmax;
+  background:radial-gradient(circle,rgba(239,98,93,.045),transparent 62%);
+  animation-duration:34s;animation-delay:-12s;
+}
+@keyframes auraDrift{
+  from{transform:translate(0,0) scale(1)}
+  to{transform:translate(-6vmax,4vmax) scale(1.12)}
+}
+
+/* thanh tiến độ mảnh dưới đầu trang */
+.progress{
+  height:2px;background:rgba(135,139,134,.14);position:relative;z-index:2;
+}
+.progress i{
+  display:block;height:100%;width:0%;
+  background:linear-gradient(90deg,var(--amber),#f99c00);
+  transition:width .35s var(--ease);
 }
 
 /* ---------- header ---------- */
@@ -137,10 +167,28 @@ body::before{ /* film grain */
 .card[hidden]{display:none}
 .card:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
 .card:active{transform:scale(.988)}
+
+/* spotlight: sáng vàng theo con trỏ trên mặt thẻ */
+.card::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(340px circle at var(--mx,50%) var(--my,50%),rgba(252,187,0,.08),transparent 65%);
+  opacity:0;transition:opacity .3s var(--ease);
+}
+.card:hover::after{opacity:1}
+
+/* thoát thẻ: xoay nhẹ ngẫu nhiên */
 .card.leaving{animation:cardOut .22s var(--ease) forwards}
 @keyframes cardOut{
-  to{opacity:0;transform:translateY(-12px) scale(.985)}
+  to{opacity:0;transform:translateY(-12px) rotate(var(--exit-rot,0deg)) scale(.985)}
 }
+
+/* chữ hiện tuần tự khi sang câu mới */
+.card.reveal .tag{animation:tagIn .4s var(--ease) .05s backwards}
+.card.reveal .q{animation:qIn .45s var(--ease) .12s backwards}
+.card.reveal .cue{animation:cueIn .4s var(--ease) .24s backwards}
+@keyframes tagIn{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
+@keyframes qIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes cueIn{from{opacity:0}to{opacity:1}}
 
 .tag{
   font-family:var(--font-mono);font-size:11.5px;font-weight:500;
@@ -188,6 +236,14 @@ body::before{ /* film grain */
 .again:hover{filter:brightness(1.08)}
 .again:active{transform:translateY(1px) scale(.985)}
 
+/* counter lật nhẹ khi đổi số */
+.count-flip{display:inline-block}
+.count-flip.flip{animation:flipNum .3s var(--ease)}
+@keyframes flipNum{
+  0%{transform:translateY(5px);opacity:0}
+  100%{transform:translateY(0);opacity:1}
+}
+
 /* ---------- footer ---------- */
 .foot{
   display:flex;align-items:center;justify-content:space-between;gap:12px;
@@ -215,6 +271,9 @@ kbd{
   .card,.end{animation:none}
   .card{transition-duration:.12s}
   .cue-arrow{transition:none}
+  .card.reveal .tag,.card.reveal .q,.card.reveal .cue{animation:none}
+  .aura,.progress i{transition:none}
+  .count-flip{animation:none}
 }
 </style>
 
@@ -227,9 +286,17 @@ const cardEl = document.getElementById("card") as HTMLButtonElement;
 const tagEl = document.getElementById("tag") as HTMLElement;
 const questionEl = document.getElementById("question") as HTMLElement;
 const counterEl = document.getElementById("counter") as HTMLElement;
+const progressBar = document.getElementById("progressBar") as HTMLElement;
 const endScreen = document.getElementById("endScreen") as HTMLElement;
 const endStats = document.getElementById("endStats") as HTMLElement;
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* spotlight theo con trỏ trên mặt thẻ */
+cardEl.addEventListener("pointermove", e => {
+  const r = cardEl.getBoundingClientRect();
+  cardEl.style.setProperty("--mx", `${e.clientX - r.left}px`);
+  cardEl.style.setProperty("--my", `${e.clientY - r.top}px`);
+});
 
 interface Q { id: number; tag: string; q: string; a: string }
 let cards: Q[] = [];
@@ -243,6 +310,11 @@ function paint() {
   tagEl.style.setProperty("--tag", TAG_COLORS[item.tag] ?? "#fcbb00");
   questionEl.textContent = item.q;
   counterEl.textContent = `${index + 1} / ${cards.length}`;
+  progressBar.style.width = `${((index + 1) / cards.length) * 100}%`;
+  // counter lật
+  counterEl.classList.remove("flip");
+  void counterEl.offsetWidth;
+  counterEl.classList.add("flip");
 }
 
 function next() {
@@ -254,6 +326,8 @@ function next() {
     advance();
     return;
   }
+  // xoay thoát ngẫu nhiên nhẹ
+  cardEl.style.setProperty("--exit-rot", `${(Math.random() - .5) * 5}deg`);
   cardEl.classList.add("leaving");
   cardEl.addEventListener("animationend", e => {
     if (e.animationName === "cardOut") advance();
@@ -261,7 +335,7 @@ function next() {
 }
 
 function advance() {
-  cardEl.classList.remove("leaving");
+  cardEl.classList.remove("leaving", "reveal");
   index++;
   animating = false;
   if (index >= cards.length) {
@@ -269,10 +343,11 @@ function advance() {
     return;
   }
   paint();
-  // restart enter animation
+  // restart enter animation + chữ hiện tuần tự
   cardEl.style.animation = "none";
   void cardEl.offsetWidth;
   cardEl.style.animation = "";
+  cardEl.classList.add("reveal");
 }
 
 function showEnd() {
@@ -290,6 +365,7 @@ function newDeck() {
   cardEl.style.animation = "none";
   void cardEl.offsetWidth;
   cardEl.style.animation = "";
+  cardEl.classList.add("reveal");
   paint();
 }
 
